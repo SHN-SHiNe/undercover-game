@@ -1,5 +1,7 @@
 from __future__ import annotations
 import json
+import os
+import shutil
 from pathlib import Path
 import random
 from dataclasses import dataclass, field
@@ -54,11 +56,32 @@ class GameState:
 game_state = GameState()
 
 # -----------------------------
+# Words storage path (persistent on HF Spaces)
+# -----------------------------
+def _get_words_path() -> Path:
+    """Return the path to words.json.
+    On HF Spaces, use /data/ for persistent storage.
+    Locally, use the project's data/ directory.
+    """
+    base_dir = Path(__file__).resolve().parent
+    default_path = base_dir / 'data' / 'words.json'
+    # HF Spaces persistent storage
+    if os.environ.get('SPACE_ID') or Path('/data').is_dir():
+        persistent_path = Path('/data/words.json')
+        if not persistent_path.exists() and default_path.exists():
+            shutil.copy2(str(default_path), str(persistent_path))
+        if persistent_path.exists():
+            return persistent_path
+    return default_path
+
+WORDS_PATH = _get_words_path()
+
+# -----------------------------
 # Words loading (by category)
 # -----------------------------
 
 def load_words_by_category() -> Dict[str, List[Dict[str, str]]]:
-    """Load word pairs grouped by category from data/words.json.
+    """Load word pairs grouped by category from words.json.
     
     Supported formats:
     - Old format: top-level list of {"civilian": ..., "undercover": ...}
@@ -67,8 +90,7 @@ def load_words_by_category() -> Dict[str, List[Dict[str, str]]]:
     """
     
     try:
-        base_dir = Path(__file__).resolve().parent
-        words_path = base_dir / 'data' / 'words.json'
+        words_path = WORDS_PATH
         with open(words_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
@@ -353,10 +375,8 @@ def api_word_stats():
 
 
 def _save_words():
-    """Persist WORD_CATEGORIES back to data/words.json."""
-    base_dir = Path(__file__).resolve().parent
-    words_path = base_dir / 'data' / 'words.json'
-    with open(words_path, 'w', encoding='utf-8') as f:
+    """Persist WORD_CATEGORIES back to words.json (persistent path)."""
+    with open(WORDS_PATH, 'w', encoding='utf-8') as f:
         json.dump(WORD_CATEGORIES, f, ensure_ascii=False, indent=2)
 
 

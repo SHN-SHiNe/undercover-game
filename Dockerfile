@@ -21,6 +21,9 @@ RUN npm install && npm run build
 
 WORKDIR /app
 
+# Create persistent data directory
+RUN mkdir -p /data
+
 EXPOSE 7860
 
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:7860"]
