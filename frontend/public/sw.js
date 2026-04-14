@@ -3,7 +3,7 @@ const CACHE_NAME = 'undercover-v2';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'])
+      cache.addAll(['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'])
     )
   );
   self.skipWaiting();
@@ -28,7 +28,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return res;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });

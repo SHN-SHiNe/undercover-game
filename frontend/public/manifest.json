@@ -2,20 +2,20 @@
   "name": "谁是卧底 · 发牌助手",
   "short_name": "谁是卧底",
   "description": "谁是卧底游戏发牌助手，支持多人游戏、词库管理",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0C3238",
   "theme_color": "#0C3238",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
