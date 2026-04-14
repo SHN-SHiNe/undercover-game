@@ -3,7 +3,7 @@
   "short_name": "谁是卧底",
   "description": "谁是卧底游戏发牌助手，支持多人游戏、词库管理",
   "start_url": ".",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#0C3238",
   "theme_color": "#0C3238",
   "orientation": "portrait",
