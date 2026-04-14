@@ -78,6 +78,30 @@ def _get_words_path() -> Path:
 
 WORDS_PATH = _get_words_path()
 
+DEFAULT_CAT_NAMES = {
+    'general': '通用', 'animals': '动物', 'food': '美食饮品',
+    'jobs': '职业', 'objects': '物品', 'places': '地点',
+}
+
+def _get_cat_names_path() -> Path:
+    return WORDS_PATH.parent / 'cat_names.json'
+
+def _load_cat_names() -> Dict[str, str]:
+    p = _get_cat_names_path()
+    try:
+        if p.exists():
+            with open(p, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return dict(DEFAULT_CAT_NAMES)
+
+def _save_cat_names():
+    with open(_get_cat_names_path(), 'w', encoding='utf-8') as f:
+        json.dump(CAT_NAMES, f, ensure_ascii=False, indent=2)
+
+CAT_NAMES: Dict[str, str] = _load_cat_names()
+
 # -----------------------------
 # Words loading (by category)
 # -----------------------------
@@ -391,6 +415,62 @@ def api_word_stats():
     """Return word counts per category so that frontend can display them."""
     counts = {k: len(v) for k, v in WORD_CATEGORIES.items()}
     return jsonify({'ok': True, 'categories': counts})
+
+
+@app.get('/api/categories')
+def api_get_categories():
+    """Return category keys, names, and word counts."""
+    result = []
+    for key in WORD_CATEGORIES:
+        result.append({
+            'key': key,
+            'name': CAT_NAMES.get(key, key),
+            'count': len(WORD_CATEGORIES[key]),
+        })
+    return jsonify({'ok': True, 'categories': result})
+
+
+@app.put('/api/categories/<category>')
+def api_rename_category(category: str):
+    """Rename a category."""
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get('name') or '').strip()
+    if not name:
+        return jsonify({'ok': False, 'error': '名称不能为空'}), 400
+    if category not in WORD_CATEGORIES:
+        return jsonify({'ok': False, 'error': '分类不存在'}), 400
+    CAT_NAMES[category] = name
+    _save_cat_names()
+    return jsonify({'ok': True})
+
+
+@app.post('/api/categories')
+def api_add_category():
+    """Add a new category."""
+    payload = request.get_json(silent=True) or {}
+    key = (payload.get('key') or '').strip()
+    name = (payload.get('name') or '').strip()
+    if not key or not name:
+        return jsonify({'ok': False, 'error': '标识和名称都不能为空'}), 400
+    if key in WORD_CATEGORIES:
+        return jsonify({'ok': False, 'error': '该分类已存在'}), 400
+    WORD_CATEGORIES[key] = []
+    CAT_NAMES[key] = name
+    _save_words()
+    _save_cat_names()
+    return jsonify({'ok': True})
+
+
+@app.delete('/api/categories/<category>')
+def api_delete_category(category: str):
+    """Delete a category (must be empty or confirmed)."""
+    if category not in WORD_CATEGORIES:
+        return jsonify({'ok': False, 'error': '分类不存在'}), 400
+    del WORD_CATEGORIES[category]
+    CAT_NAMES.pop(category, None)
+    _save_words()
+    _save_cat_names()
+    return jsonify({'ok': True})
 
 
 def _save_words():

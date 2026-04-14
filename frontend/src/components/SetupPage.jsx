@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   clamp, randomPlayerName, uniqueRandomPastel, getPlayerColor,
-  randomizePlayerColor, CATEGORY_KEYS, CATEGORY_NAMES,
+  randomizePlayerColor,
   LS_KEY_SETUP, LS_KEY_PLAYERS, pastelizeColor, randomColor,
 } from '../utils/helpers'
-import { apiStartGame, apiGetWordStats } from '../utils/api'
+import { apiStartGame, apiGetCategories } from '../utils/api'
 
 const MinusIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -46,7 +46,7 @@ export default function SetupPage({ toast, applyState, onGameStarted }) {
   const [undercoverCount, setUndercoverCount] = useState(1)
   const [blankCount, setBlankCount] = useState(0)
   const [activeCategories, setActiveCategories] = useState(new Set(['general']))
-  const [wordCounts, setWordCounts] = useState({})
+  const [categoryList, setCategoryList] = useState([])
   const [players, setPlayers] = useState([])
   const initialized = useRef(false)
 
@@ -113,9 +113,9 @@ export default function SetupPage({ toast, applyState, onGameStarted }) {
     }
   }, [generatePlayers])
 
-  // Fetch word stats
+  // Fetch categories
   useEffect(() => {
-    apiGetWordStats().then(setWordCounts).catch(() => {})
+    apiGetCategories().then(setCategoryList).catch(() => {})
   }, [])
 
   // Enforce constraints
@@ -291,16 +291,14 @@ export default function SetupPage({ toast, applyState, onGameStarted }) {
           <div className="card-label">词组</div>
           <div className="card-desc">选择想要游玩的词组</div>
           <div className="category-grid">
-            {CATEGORY_KEYS.map((key, idx) => (
+            {categoryList.map((cat) => (
               <button
-                key={key}
-                className={`category-tab ${activeCategories.has(key) ? 'active' : ''}`}
-                onClick={() => toggleCategory(key)}
+                key={cat.key}
+                className={`category-tab ${activeCategories.has(cat.key) ? 'active' : ''}`}
+                onClick={() => toggleCategory(cat.key)}
               >
-                <span className="cat-name">{CATEGORY_NAMES[idx]}</span>
-                <span className="cat-count">
-                  {wordCounts[key] !== undefined ? `${wordCounts[key]}词` : '...'}
-                </span>
+                <span className="cat-name">{cat.name}</span>
+                <span className="cat-count">{cat.count}词</span>
               </button>
             ))}
           </div>

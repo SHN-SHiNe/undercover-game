@@ -63,6 +63,42 @@ export async function apiRedeal() {
   return data
 }
 
+export async function apiGetCategories() {
+  const res = await fetch('/api/categories')
+  const data = await res.json()
+  if (!res.ok || !data.ok) return []
+  return data.categories || []
+}
+
+export async function apiRenameCategory(category, name) {
+  const res = await fetch(`/api/categories/${category}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '重命名失败')
+  return data
+}
+
+export async function apiAddCategory(key, name) {
+  const res = await fetch('/api/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, name }),
+  })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '创建失败')
+  return data
+}
+
+export async function apiDeleteCategory(category) {
+  const res = await fetch(`/api/categories/${category}`, { method: 'DELETE' })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '删除失败')
+  return data
+}
+
 export async function apiGetWords(category) {
   const res = await fetch(`/api/words/${category}`)
   const data = await res.json()

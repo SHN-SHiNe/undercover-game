@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CATEGORY_KEYS, CATEGORY_NAMES } from '../utils/helpers'
-import { apiGetWords, apiAddWord, apiEditWord, apiDeleteWord, apiBatchImport, apiGetWordStats } from '../utils/api'
+// categories are now loaded dynamically from backend
+import { apiGetWords, apiAddWord, apiEditWord, apiDeleteWord, apiBatchImport, apiGetCategories, apiRenameCategory, apiAddCategory, apiDeleteCategory } from '../utils/api'
 
 export default function WordLibraryPage({ toast }) {
   const navigate = useNavigate()
-  const [activeCategory, setActiveCategory] = useState('general')
+  const [categories, setCategories] = useState([])
+  const [activeCategory, setActiveCategory] = useState('')
   const [pairs, setPairs] = useState([])
-  const [wordCounts, setWordCounts] = useState({})
   const [loading, setLoading] = useState(false)
   const [word1, setWord1] = useState('')
   const [word2, setWord2] = useState('')
@@ -19,23 +19,36 @@ export default function WordLibraryPage({ toast }) {
   const [editIdx, setEditIdx] = useState(null)
   const [editW1, setEditW1] = useState('')
   const [editW2, setEditW2] = useState('')
+  // Category edit overlay
+  const [editCatKey, setEditCatKey] = useState(null)
+  const [editCatName, setEditCatName] = useState('')
+  // New category overlay
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+
+  const loadCategories = useCallback(async () => {
+    const cats = await apiGetCategories()
+    setCategories(cats)
+    return cats
+  }, [])
 
   const loadPairs = useCallback(async (cat) => {
+    if (!cat) return
     setLoading(true)
     const data = await apiGetWords(cat)
     setPairs(data)
     setLoading(false)
   }, [])
 
-  const loadStats = useCallback(async () => {
-    const stats = await apiGetWordStats()
-    setWordCounts(stats)
-  }, [])
+  useEffect(() => {
+    loadCategories().then(cats => {
+      if (cats.length > 0 && !activeCategory) setActiveCategory(cats[0].key)
+    })
+  }, [loadCategories])
 
   useEffect(() => {
-    loadPairs(activeCategory)
-    loadStats()
-  }, [activeCategory, loadPairs, loadStats])
+    if (activeCategory) loadPairs(activeCategory)
+  }, [activeCategory, loadPairs])
 
   const handleAdd = useCallback(async () => {
     if (!word1.trim() || !word2.trim()) {
@@ -48,11 +61,11 @@ export default function WordLibraryPage({ toast }) {
       setWord2('')
       toast('添加成功')
       loadPairs(activeCategory)
-      loadStats()
+      loadCategories()
     } catch (err) {
       toast(err.message)
     }
-  }, [word1, word2, activeCategory, toast, loadPairs, loadStats])
+  }, [word1, word2, activeCategory, toast, loadPairs, loadCategories])
 
   const openEdit = useCallback((index) => {
     const pair = pairs[index]
@@ -78,9 +91,9 @@ export default function WordLibraryPage({ toast }) {
       toast('已删除')
       setEditIdx(null)
       loadPairs(activeCategory)
-      loadStats()
+      loadCategories()
     } catch (err) { toast(err.message) }
-  }, [activeCategory, toast, loadPairs, loadStats])
+  }, [activeCategory, toast, loadPairs, loadCategories])
 
   const handleBatchImport = useCallback(async () => {
     if (!batchText.trim()) {
@@ -97,11 +110,11 @@ export default function WordLibraryPage({ toast }) {
       setBatchText('')
       setMode('list')
       loadPairs(activeCategory)
-      loadStats()
+      loadCategories()
     } catch (err) {
       toast(err.message)
     }
-  }, [batchText, activeCategory, toast, loadPairs, loadStats])
+  }, [batchText, activeCategory, toast, loadPairs, loadCategories])
 
   const handleFileUpload = useCallback((e) => {
     const file = e.target.files[0]
@@ -137,24 +150,33 @@ export default function WordLibraryPage({ toast }) {
       <div className="setup-content" style={{ paddingBottom: 100 }}>
         {/* Category tabs */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {CATEGORY_KEYS.map((key, idx) => (
+          {categories.map((cat) => (
             <button
-              key={key}
-              onClick={() => { setActiveCategory(key); setMode('list'); setSearchText('') }}
+              key={cat.key}
+              onClick={() => { setActiveCategory(cat.key); setMode('list'); setSearchText('') }}
+              onContextMenu={(e) => { e.preventDefault(); setEditCatKey(cat.key); setEditCatName(cat.name) }}
               style={{
                 padding: '8px 16px',
                 borderRadius: 20,
                 border: 'none',
-                background: activeCategory === key ? '#22C55E' : 'rgba(255,255,255,0.1)',
-                color: activeCategory === key ? '#052e16' : 'rgba(255,255,255,0.7)',
-                fontWeight: activeCategory === key ? 700 : 500,
+                background: activeCategory === cat.key ? '#22C55E' : 'rgba(255,255,255,0.1)',
+                color: activeCategory === cat.key ? '#052e16' : 'rgba(255,255,255,0.7)',
+                fontWeight: activeCategory === cat.key ? 700 : 500,
                 fontSize: 14,
                 cursor: 'pointer',
               }}
             >
-              {CATEGORY_NAMES[idx]} ({wordCounts[key] || 0})
+              {cat.name} ({cat.count})
             </button>
           ))}
+          <button
+            onClick={() => { setShowNewCat(true); setNewCatName('') }}
+            style={{
+              padding: '8px 14px', borderRadius: 20,
+              border: '1px dashed rgba(255,255,255,0.3)', background: 'transparent',
+              color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer',
+            }}
+          >+ 新分类</button>
         </div>
 
         {/* Action bar */}
@@ -336,6 +358,124 @@ export default function WordLibraryPage({ toast }) {
           </>
         )}
       </div>
+
+      {/* Category rename overlay */}
+      {editCatKey !== null && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 999,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditCatKey(null) }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 500, background: '#1a3a40', borderRadius: '20px 20px 0 0',
+            padding: '24px 20px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <span style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>编辑分类</span>
+              <button onClick={() => setEditCatKey(null)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 24, cursor: 'pointer', padding: '0 4px' }}
+              >&times;</button>
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 8 }}>分类标识: {editCatKey}</div>
+            <input
+              type="text" value={editCatName} onChange={(e) => setEditCatName(e.target.value)}
+              placeholder="分类名称"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  apiRenameCategory(editCatKey, editCatName.trim()).then(() => {
+                    toast('已重命名'); setEditCatKey(null); loadCategories()
+                  }).catch(err => toast(err.message))
+                }
+              }}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: 16, outline: 'none', boxSizing: 'border-box', marginBottom: 16,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => {
+                  const cat = categories.find(c => c.key === editCatKey)
+                  if (cat && cat.count > 0 && !confirm(`该分类有 ${cat.count} 条词语，确认删除？`)) return
+                  apiDeleteCategory(editCatKey).then(() => {
+                    toast('已删除分类'); setEditCatKey(null); loadCategories()
+                    if (activeCategory === editCatKey) setActiveCategory(categories[0]?.key || '')
+                  }).catch(err => toast(err.message))
+                }}
+                style={{
+                  flex: 1, padding: 14, borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)',
+                  background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+                }}
+              >删除分类</button>
+              <button
+                onClick={() => {
+                  apiRenameCategory(editCatKey, editCatName.trim()).then(() => {
+                    toast('已重命名'); setEditCatKey(null); loadCategories()
+                  }).catch(err => toast(err.message))
+                }}
+                style={{
+                  flex: 2, padding: 14, borderRadius: 12, border: 'none',
+                  background: '#22C55E', color: '#052e16', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+                }}
+              >保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New category overlay */}
+      {showNewCat && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 999,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowNewCat(false) }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 500, background: '#1a3a40', borderRadius: '20px 20px 0 0',
+            padding: '24px 20px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <span style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>新建分类</span>
+              <button onClick={() => setShowNewCat(false)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 24, cursor: 'pointer', padding: '0 4px' }}
+              >&times;</button>
+            </div>
+            <input
+              type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="分类名称（如：影视、音乐）"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newCatName.trim()) {
+                  const key = 'custom_' + Date.now()
+                  apiAddCategory(key, newCatName.trim()).then(() => {
+                    toast('已创建'); setShowNewCat(false); loadCategories().then(() => setActiveCategory(key))
+                  }).catch(err => toast(err.message))
+                }
+              }}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: 16, outline: 'none', boxSizing: 'border-box', marginBottom: 16,
+              }}
+            />
+            <button
+              onClick={() => {
+                if (!newCatName.trim()) { toast('名称不能为空'); return }
+                const key = 'custom_' + Date.now()
+                apiAddCategory(key, newCatName.trim()).then(() => {
+                  toast('已创建'); setShowNewCat(false); loadCategories().then(() => setActiveCategory(key))
+                }).catch(err => toast(err.message))
+              }}
+              style={{
+                width: '100%', padding: 14, borderRadius: 12, border: 'none',
+                background: '#22C55E', color: '#052e16', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+              }}
+            >创建</button>
+          </div>
+        </div>
+      )}
 
       {/* Edit overlay */}
       {editIdx !== null && (
