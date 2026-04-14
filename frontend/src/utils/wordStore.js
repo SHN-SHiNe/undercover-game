@@ -75,16 +75,16 @@ export function pullFromRemote() {
   return syncPromise
 }
 
-function pushToRemote() {
+export function pushToRemote() {
   const words = loadWords()
   const cats = loadCatNames()
-  if (!words) return
-  fetch(SYNC_URL, {
+  if (!words) return Promise.reject(new Error('本地无词库'))
+  return fetch(SYNC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ words, cat_names: cats || {} }),
     signal: AbortSignal.timeout(5000),
-  }).catch(() => {})
+  }).then(r => r.json())
 }
 
 // Trigger initial sync on import

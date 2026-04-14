@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 // categories are now loaded dynamically from backend
 import { apiGetWords, apiAddWord, apiEditWord, apiDeleteWord, apiBatchImport, apiGetCategories, apiRenameCategory, apiAddCategory, apiDeleteCategory } from '../utils/api'
+import { pullFromRemote, pushToRemote } from '../utils/wordStore'
 
 export default function WordLibraryPage({ toast }) {
   const navigate = useNavigate()
@@ -205,6 +206,48 @@ export default function WordLibraryPage({ toast }) {
               color: mode === 'batch' ? 'white' : 'white', fontWeight: 600, fontSize: 14, cursor: 'pointer',
             }}
           >批量导入</button>
+        </div>
+
+        {/* Sync buttons */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button
+            onClick={() => {
+              toast('正在从服务器拉取...')
+              pullFromRemote().then(() => {
+                loadCategories()
+                loadPairs(activeCategory)
+                toast('词库已更新')
+              }).catch(() => toast('同步失败，请检查网络'))
+            }}
+            style={{
+              flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(59,130,246,0.4)',
+              background: 'rgba(59,130,246,0.1)', color: '#60A5FA', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+            </svg>
+            更新词库
+          </button>
+          <button
+            onClick={() => {
+              toast('正在上传到服务器...')
+              pushToRemote().then(() => {
+                toast('上传成功')
+              }).catch(() => toast('上传失败，请检查网络'))
+            }}
+            style={{
+              flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(34,197,94,0.4)',
+              background: 'rgba(34,197,94,0.1)', color: '#4ADE80', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            上传词库
+          </button>
         </div>
 
         {/* Manual add */}
