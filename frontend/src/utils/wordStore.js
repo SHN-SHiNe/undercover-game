@@ -38,8 +38,10 @@ function getCatNames() {
 
 // --- Remote sync (explicit only, no auto-sync) ---
 
-// 更新词库：服务器 → 完全覆盖本地
+// 更新词库：清空本地缓存，服务器 → 完全覆盖本地
 export function pullFromRemote() {
+  localStorage.removeItem(LS_WORDS)
+  localStorage.removeItem(LS_CAT_NAMES)
   return fetch(SYNC_URL, { signal: AbortSignal.timeout(30000) })
     .then(r => r.json())
     .then(data => {
