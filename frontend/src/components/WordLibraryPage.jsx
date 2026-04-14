@@ -105,11 +105,10 @@ export default function WordLibraryPage({ toast }) {
     }
     try {
       const result = await apiBatchImport(activeCategory, batchText.trim())
-      let msg = `成功导入 ${result.added} 条`
-      if (result.errors && result.errors.length > 0) {
-        msg += `，${result.errors.length} 条失败`
-      }
-      toast(msg)
+      const parts = [`成功 ${result.added} 条`]
+      if (result.duplicated > 0) parts.push(`重复 ${result.duplicated} 条`)
+      if (result.errors && result.errors.length > 0) parts.push(`失败 ${result.errors.length} 条`)
+      toast(parts.join('，'))
       setBatchText('')
       setMode('list')
       loadPairs(activeCategory)

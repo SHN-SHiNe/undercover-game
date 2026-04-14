@@ -134,16 +134,20 @@ export function getWordPairs(category) {
   return words[category] || []
 }
 
+function isDuplicate(words, w1, w2) {
+  for (const pairs of Object.values(words)) {
+    for (const p of pairs) {
+      if ((p.civilian === w1 && p.undercover === w2) ||
+          (p.civilian === w2 && p.undercover === w1)) return true
+    }
+  }
+  return false
+}
+
 export function addWordPair(category, word1, word2) {
   const words = getWords()
   if (!words[category]) words[category] = []
-  // Check duplicate
-  for (const p of words[category]) {
-    if ((p.civilian === word1 && p.undercover === word2) ||
-        (p.civilian === word2 && p.undercover === word1)) {
-      throw new Error('该词对已存在')
-    }
-  }
+  if (isDuplicate(words, word1, word2)) throw new Error('该词对已存在于词库中')
   words[category].push({ civilian: word1, undercover: word2 })
   saveWords(words)
 }
@@ -167,7 +171,7 @@ export function deleteWordPair(category, index) {
 export function batchImport(category, text) {
   const words = getWords()
   if (!words[category]) words[category] = []
-  let added = 0
+  let added = 0, duplicated = 0
   const errors = []
   const entries = text.replace(/\n/g, ';').split(';').map(e => e.trim()).filter(Boolean)
   for (let i = 0; i < entries.length; i++) {
@@ -177,15 +181,12 @@ export function batchImport(category, text) {
       continue
     }
     const [w1, w2] = parts
-    const dup = words[category].some(p =>
-      (p.civilian === w1 && p.undercover === w2) || (p.civilian === w2 && p.undercover === w1)
-    )
-    if (dup) { errors.push(`第${i + 1}条已存在: "${w1},${w2}"`); continue }
+    if (isDuplicate(words, w1, w2)) { duplicated++; continue }
     words[category].push({ civilian: w1, undercover: w2 })
     added++
   }
   saveWords(words)
-  return { added, errors }
+  return { added, duplicated, errors }
 }
 
 // --- Game: pick word pair ---
