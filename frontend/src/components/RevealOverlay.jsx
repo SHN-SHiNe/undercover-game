@@ -101,6 +101,33 @@ export default function RevealOverlay({ players, onDone }) {
     touchStartRef.current = null
   }, [swipeX, doSwipe])
 
+  // Mouse drag (desktop)
+  const mouseDownRef = useRef(false)
+
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault()
+    touchStartRef.current = e.clientX
+    mouseDownRef.current = true
+    setIsSwiping(true)
+  }, [])
+
+  const onMouseMove = useCallback((e) => {
+    if (!mouseDownRef.current || touchStartRef.current === null) return
+    setSwipeX(e.clientX - touchStartRef.current)
+  }, [])
+
+  const onMouseUp = useCallback(() => {
+    if (!mouseDownRef.current) return
+    mouseDownRef.current = false
+    setIsSwiping(false)
+    if (Math.abs(swipeX) > 50) {
+      const dir = swipeX > 0 ? 1 : -1
+      doSwipe(dir)
+    }
+    setSwipeX(0)
+    touchStartRef.current = null
+  }, [swipeX, doSwipe])
+
   const handleNext = useCallback(() => {
     clearAutoFlip()
     // Disable transition, reset rotation instantly, then re-enable
@@ -142,6 +169,10 @@ export default function RevealOverlay({ players, onDone }) {
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
         >
           {/* ---- FRONT ---- */}
           <div style={{ ...S.face, ...S.front, background: bg }}>
