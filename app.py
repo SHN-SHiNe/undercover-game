@@ -139,7 +139,11 @@ def pick_word_pair(selected_categories: Optional[List[str]] = None) -> Dict[str,
         pool.extend(non_empty[c])
     if not pool:
         pool = next(iter(non_empty.values()))
-    return random.choice(pool)
+    pair = random.choice(pool)
+    # Randomly swap which word is civilian vs undercover
+    if random.random() < 0.5:
+        return {'civilian': pair['undercover'], 'undercover': pair['civilian']}
+    return pair
 
 # -----------------------------
 # Helpers
