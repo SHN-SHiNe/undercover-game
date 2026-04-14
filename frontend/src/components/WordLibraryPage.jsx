@@ -174,15 +174,15 @@ export default function WordLibraryPage({ toast }) {
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 12 }}>
               输入一对词语（两个词语的地位相同，游戏时随机分配给平民和卧底）
             </div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, overflow: 'hidden' }}>
               <input
                 type="text"
                 placeholder="词语 A"
                 value={word1}
                 onChange={(e) => setWord1(e.target.value)}
                 style={{
-                  flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
-                  background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: 16, outline: 'none',
+                  flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: 16, outline: 'none', boxSizing: 'border-box',
                 }}
               />
               <input
@@ -192,8 +192,8 @@ export default function WordLibraryPage({ toast }) {
                 onChange={(e) => setWord2(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                 style={{
-                  flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
-                  background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: 16, outline: 'none',
+                  flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: 16, outline: 'none', boxSizing: 'border-box',
                 }}
               />
             </div>
