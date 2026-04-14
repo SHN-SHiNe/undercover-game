@@ -82,6 +82,7 @@ export const DEFAULT_WORDS = {
     {civilian:"火车",undercover:"地铁"},{civilian:"篮球",undercover:"足球"},
     {civilian:"牙刷",undercover:"牙签"},{civilian:"酸奶",undercover:"牛奶"},
     {civilian:"外套",undercover:"夹克"},{civilian:"桌子",undercover:"书桌"},
+    {civilian:"纸巾",undercover:"湿巾"},
   ],
   animals: [],
   food: [],
