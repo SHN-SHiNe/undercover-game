@@ -17,7 +17,7 @@ COPY . .
 
 # Build React frontend
 WORKDIR /app/frontend
-RUN npm install && npm run build
+RUN npm install && node generate-icons.cjs && npm run build
 
 WORKDIR /app
 

@@ -319,6 +319,22 @@ def words_page():
 def react_assets(filename):
     return send_from_directory(str(REACT_DIR / 'assets'), filename)
 
+@app.get('/manifest.json')
+def pwa_manifest():
+    return send_from_directory(str(REACT_DIR), 'manifest.json')
+
+@app.get('/sw.js')
+def pwa_sw():
+    return send_from_directory(str(REACT_DIR), 'sw.js', mimetype='application/javascript')
+
+@app.get('/icon-192.png')
+def pwa_icon_192():
+    return send_from_directory(str(REACT_DIR), 'icon-192.png')
+
+@app.get('/icon-512.png')
+def pwa_icon_512():
+    return send_from_directory(str(REACT_DIR), 'icon-512.png')
+
 
 @app.post('/api/start')
 def api_start():
