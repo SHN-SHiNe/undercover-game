@@ -42,8 +42,10 @@ export default function WordLibraryPage({ toast }) {
   }, [])
 
   useEffect(() => {
-    loadCategories().then(cats => {
-      if (cats.length > 0 && !activeCategory) setActiveCategory(cats[0].key)
+    pullFromRemote().finally(() => {
+      loadCategories().then(cats => {
+        if (cats.length > 0 && !activeCategory) setActiveCategory(cats[0].key)
+      })
     })
   }, [loadCategories])
 

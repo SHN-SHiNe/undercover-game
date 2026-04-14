@@ -6,6 +6,7 @@ import {
   LS_KEY_SETUP, LS_KEY_PLAYERS, pastelizeColor, randomColor,
 } from '../utils/helpers'
 import { apiStartGame, apiGetCategories } from '../utils/api'
+import { pullFromRemote } from '../utils/wordStore'
 
 const MinusIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,7 +116,9 @@ export default function SetupPage({ toast, applyState, onGameStarted }) {
 
   // Fetch categories
   useEffect(() => {
-    apiGetCategories().then(setCategoryList).catch(() => {})
+    pullFromRemote().finally(() => {
+      apiGetCategories().then(setCategoryList).catch(() => {})
+    })
   }, [])
 
   // Enforce constraints
