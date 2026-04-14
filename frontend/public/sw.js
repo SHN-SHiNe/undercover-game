@@ -1,11 +1,6 @@
-const CACHE_NAME = 'undercover-v2';
+const CACHE_NAME = 'undercover-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'])
-    )
-  );
   self.skipWaiting();
 });
 
@@ -20,15 +15,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((res) => {
+    fetch(event.request)
+      .then((res) => {
         if (res.ok && event.request.method === 'GET') {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return res;
-      }).catch(() => caches.match('./index.html'));
-    })
+      })
+      .catch(() => caches.match(event.request).then((c) => c || caches.match('./index.html')))
   );
 });
