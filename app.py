@@ -38,6 +38,7 @@ class GameState:
     players: List[Player] = field(default_factory=list)
     roles: Dict[int, str] = field(default_factory=dict)  # id -> 'civilian'|'undercover'|'blank'
     words: Dict[str, str] = field(default_factory=dict)  # {'civilian': xxx, 'undercover': yyy}
+    selected_categories: List[str] = field(default_factory=list)
     eliminated_order: List[int] = field(default_factory=list)
     first_speaker_id: Optional[int] = None
 
@@ -49,6 +50,7 @@ class GameState:
         self.players = []
         self.roles = {}
         self.words = {}
+        self.selected_categories = []
         self.eliminated_order = []
         self.first_speaker_id = None
 
@@ -355,6 +357,7 @@ def api_start():
     game_state.players = players
     game_state.roles = roles
     game_state.words = {'civilian': pair['civilian'], 'undercover': pair['undercover']}
+    game_state.selected_categories = categories
     game_state.eliminated_order = []
     # Randomly choose first speaker among all players
     game_state.first_speaker_id = random.randrange(total) if total > 0 else None
@@ -510,7 +513,7 @@ def api_redeal():
 
     # Redeal roles and words
     game_state.roles = assign_roles(total, undercover, blank)
-    pair = pick_word_pair()
+    pair = pick_word_pair(game_state.selected_categories)
     game_state.words = {'civilian': pair['civilian'], 'undercover': pair['undercover']}
     game_state.eliminated_order = []
     game_state.started = True
