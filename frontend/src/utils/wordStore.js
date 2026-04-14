@@ -173,9 +173,9 @@ export function batchImport(category, text) {
   if (!words[category]) words[category] = []
   let added = 0, duplicated = 0
   const errors = []
-  const entries = text.replace(/\n/g, ';').split(';').map(e => e.trim()).filter(Boolean)
+  const entries = text.replace(/\n/g, ';').split(/[;；]/).map(e => e.trim()).filter(Boolean)
   for (let i = 0; i < entries.length; i++) {
-    const parts = entries[i].split(',').map(p => p.trim())
+    const parts = entries[i].split(/[,，]/).map(p => p.trim())
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
       errors.push(`第${i + 1}条格式错误: "${entries[i]}"`)
       continue

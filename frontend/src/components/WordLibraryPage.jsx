@@ -298,10 +298,10 @@ export default function WordLibraryPage({ toast }) {
             background: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: 20, marginBottom: 16,
           }}>
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 8 }}>
-              格式：每对词语用逗号分隔，每条用分号或换行结尾
+              格式：每对词语用逗号分隔，每条用分号或换行结尾（支持中英文标点）
             </div>
             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginBottom: 12 }}>
-              示例：苹果,香蕉;手机,座机;牛奶,豆浆
+              示例：苹果,香蕉;手机,座机 或 苹果，香蕉；手机，座机
             </div>
             <textarea
               placeholder="苹果,香蕉;手机,座机;牛奶,豆浆"
