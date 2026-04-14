@@ -40,7 +40,7 @@ function getCatNames() {
 
 // 更新词库：服务器 → 完全覆盖本地
 export function pullFromRemote() {
-  return fetch(SYNC_URL, { signal: AbortSignal.timeout(8000) })
+  return fetch(SYNC_URL, { signal: AbortSignal.timeout(30000) })
     .then(r => r.json())
     .then(data => {
       if (data.ok && data.words && Object.keys(data.words).length > 0) {
@@ -61,7 +61,7 @@ export function pushToRemote() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ words, cat_names: cats || {} }),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(30000),
   }).then(r => r.json())
 }
 

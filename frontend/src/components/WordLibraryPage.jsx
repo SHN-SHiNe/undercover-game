@@ -211,12 +211,12 @@ export default function WordLibraryPage({ toast }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button
             onClick={() => {
-              toast('正在从服务器拉取...')
+              toast('正在从服务器拉取，首次可能需要等待30秒...')
               pullFromRemote().then(() => {
                 loadCategories()
                 loadPairs(activeCategory)
-                toast('词库已更新')
-              }).catch(() => toast('同步失败，请检查网络'))
+                toast('词库已从服务器更新到本地')
+              }).catch(() => toast('拉取失败，请稍后重试'))
             }}
             style={{
               flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(59,130,246,0.4)',
@@ -231,10 +231,10 @@ export default function WordLibraryPage({ toast }) {
           </button>
           <button
             onClick={() => {
-              toast('正在上传到服务器...')
+              toast('正在上传到服务器，首次可能需要等待30秒...')
               pushToRemote().then(() => {
-                toast('上传成功')
-              }).catch(() => toast('上传失败，请检查网络'))
+                toast('本地词库已上传覆盖到服务器')
+              }).catch(() => toast('上传失败，请稍后重试'))
             }}
             style={{
               flex: 1, padding: '10px', borderRadius: 10, border: '1px solid rgba(34,197,94,0.4)',
