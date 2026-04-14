@@ -5,8 +5,12 @@ RUN npm install
 COPY frontend/ .
 RUN npm run build
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-RUN echo 'server { listen 7860; root /usr/share/nginx/html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY server.py .
+COPY --from=build /app/dist ./static
+RUN mkdir -p /data
 EXPOSE 7860
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["gunicorn", "server:app", "--bind", "0.0.0.0:7860", "--workers", "2"]

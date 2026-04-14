@@ -2,6 +2,7 @@ import { DEFAULT_WORDS, DEFAULT_CAT_NAMES } from '../data/defaultWords'
 
 const LS_WORDS = 'uc_words'
 const LS_CAT_NAMES = 'uc_cat_names'
+const SYNC_URL = 'https://shnshine-undercover-game.hf.space/api/sync'
 
 function loadWords() {
   try {
@@ -13,6 +14,7 @@ function loadWords() {
 
 function saveWords(data) {
   localStorage.setItem(LS_WORDS, JSON.stringify(data))
+  pushToRemote()
 }
 
 function loadCatNames() {
@@ -25,9 +27,9 @@ function loadCatNames() {
 
 function saveCatNames(data) {
   localStorage.setItem(LS_CAT_NAMES, JSON.stringify(data))
+  pushToRemote()
 }
 
-// Initialize on first import
 function getWords() {
   return loadWords() || structuredClone(DEFAULT_WORDS)
 }
@@ -35,6 +37,58 @@ function getWords() {
 function getCatNames() {
   return loadCatNames() || { ...DEFAULT_CAT_NAMES }
 }
+
+// --- Remote sync ---
+
+let syncPromise = null
+
+export function pullFromRemote() {
+  if (syncPromise) return syncPromise
+  syncPromise = fetch(SYNC_URL, { signal: AbortSignal.timeout(5000) })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        const remoteWords = data.words
+        const remoteCats = data.cat_names
+        if (remoteWords && Object.keys(remoteWords).length > 0) {
+          // Merge: remote is base, add any local-only categories on top
+          const localWords = loadWords()
+          const localCats = loadCatNames()
+          const merged = { ...remoteWords }
+          const mergedCats = { ...remoteCats }
+          if (localWords) {
+            for (const [key, pairs] of Object.entries(localWords)) {
+              if (!merged[key]) {
+                // Local-only category, keep it
+                merged[key] = pairs
+                if (localCats && localCats[key]) mergedCats[key] = localCats[key]
+              }
+            }
+          }
+          localStorage.setItem(LS_WORDS, JSON.stringify(merged))
+          localStorage.setItem(LS_CAT_NAMES, JSON.stringify(mergedCats))
+        }
+      }
+    })
+    .catch(() => {})
+    .finally(() => { syncPromise = null })
+  return syncPromise
+}
+
+function pushToRemote() {
+  const words = loadWords()
+  const cats = loadCatNames()
+  if (!words) return
+  fetch(SYNC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ words, cat_names: cats || {} }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {})
+}
+
+// Trigger initial sync on import
+pullFromRemote()
 
 // --- Category management ---
 
