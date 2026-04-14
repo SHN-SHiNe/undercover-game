@@ -23,10 +23,9 @@ export default function GamePage({ gameState, applyState, toast, onReset }) {
 
     if (gameState.started && needReveal) {
       setShowReveal(true)
-      // Clean URL
-      try { window.history.replaceState({}, '', '/game') } catch (_) {}
+      navigate('/game', { replace: true })
     } else if (!gameState.started) {
-      // Try to fetch state
+      // Try to fetch state (from in-memory engine)
       apiGetState().then((data) => {
         applyState(data.state)
         if (data.state.started && needReveal) {
@@ -34,7 +33,7 @@ export default function GamePage({ gameState, applyState, toast, onReset }) {
         } else if (!data.state.started) {
           navigate('/', { replace: true })
         }
-        try { window.history.replaceState({}, '', '/game') } catch (_) {}
+        navigate('/game', { replace: true })
       }).catch(() => {
         navigate('/', { replace: true })
       })

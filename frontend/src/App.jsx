@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react'
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import React, { useState, useCallback } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import SetupPage from './components/SetupPage'
 import GamePage from './components/GamePage'
 import ResultPage from './components/ResultPage'
 import WordLibraryPage from './components/WordLibraryPage'
 import Modal from './components/Modal'
-import { apiGetState } from './utils/api'
 
 export default function App() {
   const [gameState, setGameState] = useState({
@@ -18,7 +17,6 @@ export default function App() {
 
   const [modalMsg, setModalMsg] = useState(null)
   const navigate = useNavigate()
-  const location = useLocation()
 
   const toast = useCallback((msg) => {
     setModalMsg(msg)
@@ -33,17 +31,6 @@ export default function App() {
       first_speaker_id: s.first_speaker_id ?? null,
     })
   }, [])
-
-  // Handle ?reveal=1 query param
-  useEffect(() => {
-    const sp = new URLSearchParams(location.search)
-    if (sp.get('reveal') === '1' && location.pathname === '/') {
-      apiGetState().then((data) => {
-        applyState(data.state)
-        navigate('/game?reveal=1', { replace: true })
-      }).catch(() => {})
-    }
-  }, [location.search, location.pathname, applyState, navigate])
 
   return (
     <>
