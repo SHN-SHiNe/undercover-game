@@ -14,7 +14,6 @@ function loadWords() {
 
 function saveWords(data) {
   localStorage.setItem(LS_WORDS, JSON.stringify(data))
-  pushToRemote()
 }
 
 function loadCatNames() {
@@ -27,7 +26,6 @@ function loadCatNames() {
 
 function saveCatNames(data) {
   localStorage.setItem(LS_CAT_NAMES, JSON.stringify(data))
-  pushToRemote()
 }
 
 function getWords() {
@@ -38,49 +36,23 @@ function getCatNames() {
   return loadCatNames() || { ...DEFAULT_CAT_NAMES }
 }
 
-// --- Remote sync ---
+// --- Remote sync (explicit only, no auto-sync) ---
 
-let syncPromise = null
-
+// 更新词库：服务器 → 完全覆盖本地
 export function pullFromRemote() {
-  if (syncPromise) return syncPromise
-  syncPromise = fetch(SYNC_URL, { signal: AbortSignal.timeout(5000) })
+  return fetch(SYNC_URL, { signal: AbortSignal.timeout(8000) })
     .then(r => r.json())
     .then(data => {
-      if (data.ok) {
-        const remoteWords = data.words
-        const remoteCats = data.cat_names
-        if (remoteWords && Object.keys(remoteWords).length > 0) {
-          const localWords = loadWords()
-          const localCats = loadCatNames()
-          // Merge: for each category, keep whichever side has more entries
-          const allKeys = new Set([
-            ...Object.keys(remoteWords),
-            ...(localWords ? Object.keys(localWords) : []),
-          ])
-          const merged = {}
-          const mergedCats = { ...(localCats || {}), ...(remoteCats || {}) }
-          for (const key of allKeys) {
-            const remote = remoteWords[key] || []
-            const local = (localWords && localWords[key]) || []
-            merged[key] = remote.length >= local.length ? remote : local
-          }
-          localStorage.setItem(LS_WORDS, JSON.stringify(merged))
-          localStorage.setItem(LS_CAT_NAMES, JSON.stringify(mergedCats))
-          // If local had more data, push it back to server
-          const localTotal = localWords ? Object.values(localWords).reduce((s, a) => s + a.length, 0) : 0
-          const remoteTotal = Object.values(remoteWords).reduce((s, a) => s + a.length, 0)
-          if (localTotal > remoteTotal) {
-            pushToRemote().catch(() => {})
-          }
+      if (data.ok && data.words && Object.keys(data.words).length > 0) {
+        localStorage.setItem(LS_WORDS, JSON.stringify(data.words))
+        if (data.cat_names) {
+          localStorage.setItem(LS_CAT_NAMES, JSON.stringify(data.cat_names))
         }
       }
     })
-    .catch(() => {})
-    .finally(() => { syncPromise = null })
-  return syncPromise
 }
 
+// 上传词库：本地 → 完全覆盖服务器
 export function pushToRemote() {
   const words = loadWords()
   const cats = loadCatNames()
@@ -89,12 +61,9 @@ export function pushToRemote() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ words, cat_names: cats || {} }),
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(8000),
   }).then(r => r.json())
 }
-
-// Trigger initial sync on import
-pullFromRemote()
 
 // --- Category management ---
 
