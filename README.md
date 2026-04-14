@@ -1,3 +1,12 @@
+---
+title: Undercover Game
+emoji: 🎭
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # 谁是卧底 · 发牌助手（Flask）
 
 ## Overview
