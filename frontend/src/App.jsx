@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import SetupPage from './components/SetupPage'
 import GamePage from './components/GamePage'
 import ResultPage from './components/ResultPage'
+import WordLibraryPage from './components/WordLibraryPage'
 import Modal from './components/Modal'
 import { apiGetState } from './utils/api'
 
@@ -72,6 +73,14 @@ export default function App() {
           path="/result"
           element={
             <ResultPage
+              toast={toast}
+            />
+          }
+        />
+        <Route
+          path="/words"
+          element={
+            <WordLibraryPage
               toast={toast}
             />
           }

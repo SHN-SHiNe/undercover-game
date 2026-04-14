@@ -62,3 +62,39 @@ export async function apiRedeal() {
   if (!res.ok || !data.ok) throw new Error(data.error || '再来一局失败')
   return data
 }
+
+export async function apiGetWords(category) {
+  const res = await fetch(`/api/words/${category}`)
+  const data = await res.json()
+  if (!res.ok || !data.ok) return []
+  return data.pairs || []
+}
+
+export async function apiAddWord(category, word1, word2) {
+  const res = await fetch(`/api/words/${category}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word1, word2 }),
+  })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '添加失败')
+  return data
+}
+
+export async function apiDeleteWord(category, index) {
+  const res = await fetch(`/api/words/${category}/${index}`, { method: 'DELETE' })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '删除失败')
+  return data
+}
+
+export async function apiBatchImport(category, text) {
+  const res = await fetch(`/api/words/${category}/batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '导入失败')
+  return data
+}

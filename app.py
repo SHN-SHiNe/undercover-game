@@ -281,6 +281,12 @@ def game_page():
         return send_from_directory(str(REACT_DIR), 'index.html')
     return render_template('index.html')
 
+@app.get('/words')
+def words_page():
+    if (REACT_DIR / 'index.html').exists():
+        return send_from_directory(str(REACT_DIR), 'index.html')
+    return render_template('index.html')
+
 @app.route('/assets/<path:filename>')
 def react_assets(filename):
     return send_from_directory(str(REACT_DIR / 'assets'), filename)
@@ -340,6 +346,87 @@ def api_word_stats():
     """Return word counts per category so that frontend can display them."""
     counts = {k: len(v) for k, v in WORD_CATEGORIES.items()}
     return jsonify({'ok': True, 'categories': counts})
+
+
+def _save_words():
+    """Persist WORD_CATEGORIES back to data/words.json."""
+    base_dir = Path(__file__).resolve().parent
+    words_path = base_dir / 'data' / 'words.json'
+    with open(words_path, 'w', encoding='utf-8') as f:
+        json.dump(WORD_CATEGORIES, f, ensure_ascii=False, indent=2)
+
+
+@app.get('/api/words/<category>')
+def api_get_words(category: str):
+    """Get all word pairs in a category."""
+    pairs = WORD_CATEGORIES.get(category, [])
+    return jsonify({'ok': True, 'pairs': pairs})
+
+
+@app.post('/api/words/<category>')
+def api_add_word(category: str):
+    """Add a single word pair to a category."""
+    payload = request.get_json(silent=True) or {}
+    w1 = (payload.get('word1') or '').strip()
+    w2 = (payload.get('word2') or '').strip()
+    if not w1 or not w2:
+        return jsonify({'ok': False, 'error': '两个词语都不能为空'}), 400
+    if category not in WORD_CATEGORIES:
+        WORD_CATEGORIES[category] = []
+    # Check duplicate
+    for p in WORD_CATEGORIES[category]:
+        if (p['civilian'] == w1 and p['undercover'] == w2) or \
+           (p['civilian'] == w2 and p['undercover'] == w1):
+            return jsonify({'ok': False, 'error': '该词对已存在'}), 400
+    WORD_CATEGORIES[category].append({'civilian': w1, 'undercover': w2})
+    _save_words()
+    return jsonify({'ok': True, 'count': len(WORD_CATEGORIES[category])})
+
+
+@app.delete('/api/words/<category>/<int:index>')
+def api_delete_word(category: str, index: int):
+    """Delete a word pair by index from a category."""
+    pairs = WORD_CATEGORIES.get(category, [])
+    if index < 0 or index >= len(pairs):
+        return jsonify({'ok': False, 'error': '索引无效'}), 400
+    pairs.pop(index)
+    _save_words()
+    return jsonify({'ok': True, 'count': len(pairs)})
+
+
+@app.post('/api/words/<category>/batch')
+def api_batch_import(category: str):
+    """Batch import word pairs. Format: word1,word2;word3,word4; ..."""
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get('text') or '').strip()
+    if not text:
+        return jsonify({'ok': False, 'error': '内容不能为空'}), 400
+    if category not in WORD_CATEGORIES:
+        WORD_CATEGORIES[category] = []
+    added = 0
+    errors = []
+    # Split by semicolons, then each part by comma
+    entries = [e.strip() for e in text.replace('\n', ';').split(';') if e.strip()]
+    for i, entry in enumerate(entries):
+        parts = [p.strip() for p in entry.split(',')]
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            errors.append(f'第{i+1}条格式错误: "{entry}"')
+            continue
+        w1, w2 = parts[0], parts[1]
+        # Check duplicate
+        dup = False
+        for p in WORD_CATEGORIES[category]:
+            if (p['civilian'] == w1 and p['undercover'] == w2) or \
+               (p['civilian'] == w2 and p['undercover'] == w1):
+                dup = True
+                break
+        if dup:
+            errors.append(f'第{i+1}条已存在: "{w1},{w2}"')
+            continue
+        WORD_CATEGORIES[category].append({'civilian': w1, 'undercover': w2})
+        added += 1
+    _save_words()
+    return jsonify({'ok': True, 'added': added, 'errors': errors, 'count': len(WORD_CATEGORIES[category])})
 
 
 @app.get('/api/player_word/<int:pid>')

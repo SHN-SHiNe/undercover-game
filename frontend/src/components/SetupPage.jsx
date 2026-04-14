@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   clamp, randomPlayerName, uniqueRandomPastel, getPlayerColor,
   randomizePlayerColor, CATEGORY_KEYS, CATEGORY_NAMES,
@@ -40,6 +41,7 @@ function Stepper({ value, onDec, onInc }) {
 }
 
 export default function SetupPage({ toast, applyState, onGameStarted }) {
+  const navigate = useNavigate()
   const [totalPlayers, setTotalPlayers] = useState(6)
   const [undercoverCount, setUndercoverCount] = useState(1)
   const [blankCount, setBlankCount] = useState(0)
@@ -302,6 +304,20 @@ export default function SetupPage({ toast, applyState, onGameStarted }) {
               </button>
             ))}
           </div>
+          <button
+            onClick={() => navigate('/words')}
+            style={{
+              marginTop: 12, width: '100%', padding: '12px 16px', borderRadius: 10,
+              border: '1px dashed rgba(255,255,255,0.25)', background: 'transparent',
+              color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            管理词库
+          </button>
         </div>
 
         {/* Player Info */}
