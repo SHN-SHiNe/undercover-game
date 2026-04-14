@@ -51,22 +51,28 @@ export function pullFromRemote() {
         const remoteWords = data.words
         const remoteCats = data.cat_names
         if (remoteWords && Object.keys(remoteWords).length > 0) {
-          // Merge: remote is base, add any local-only categories on top
           const localWords = loadWords()
           const localCats = loadCatNames()
-          const merged = { ...remoteWords }
-          const mergedCats = { ...remoteCats }
-          if (localWords) {
-            for (const [key, pairs] of Object.entries(localWords)) {
-              if (!merged[key]) {
-                // Local-only category, keep it
-                merged[key] = pairs
-                if (localCats && localCats[key]) mergedCats[key] = localCats[key]
-              }
-            }
+          // Merge: for each category, keep whichever side has more entries
+          const allKeys = new Set([
+            ...Object.keys(remoteWords),
+            ...(localWords ? Object.keys(localWords) : []),
+          ])
+          const merged = {}
+          const mergedCats = { ...(localCats || {}), ...(remoteCats || {}) }
+          for (const key of allKeys) {
+            const remote = remoteWords[key] || []
+            const local = (localWords && localWords[key]) || []
+            merged[key] = remote.length >= local.length ? remote : local
           }
           localStorage.setItem(LS_WORDS, JSON.stringify(merged))
           localStorage.setItem(LS_CAT_NAMES, JSON.stringify(mergedCats))
+          // If local had more data, push it back to server
+          const localTotal = localWords ? Object.values(localWords).reduce((s, a) => s + a.length, 0) : 0
+          const remoteTotal = Object.values(remoteWords).reduce((s, a) => s + a.length, 0)
+          if (localTotal > remoteTotal) {
+            pushToRemote().catch(() => {})
+          }
         }
       }
     })
