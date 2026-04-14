@@ -1,29 +1,12 @@
-FROM python:3.11-slim
-
-# Install Node.js for frontend build
-RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
+FROM node:20-alpine AS build
 WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ .
+RUN npm run build
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy all source code
-COPY . .
-
-# Build React frontend
-WORKDIR /app/frontend
-RUN npm install && node generate-icons.cjs && npm run build
-
-WORKDIR /app
-
-# Create persistent data directory
-RUN mkdir -p /data
-
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+RUN echo 'server { listen 7860; root /usr/share/nginx/html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 EXPOSE 7860
-
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:7860"]
+CMD ["nginx", "-g", "daemon off;"]
