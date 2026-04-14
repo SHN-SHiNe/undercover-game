@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CATEGORY_KEYS, CATEGORY_NAMES } from '../utils/helpers'
-import { apiGetWords, apiAddWord, apiDeleteWord, apiBatchImport, apiGetWordStats } from '../utils/api'
+import { apiGetWords, apiAddWord, apiEditWord, apiDeleteWord, apiBatchImport, apiGetWordStats } from '../utils/api'
 
 export default function WordLibraryPage({ toast }) {
   const navigate = useNavigate()
@@ -15,6 +15,10 @@ export default function WordLibraryPage({ toast }) {
   const [mode, setMode] = useState('list') // list | add | batch
   const [searchText, setSearchText] = useState('')
   const fileInputRef = useRef(null)
+  // Edit overlay state
+  const [editIdx, setEditIdx] = useState(null)
+  const [editW1, setEditW1] = useState('')
+  const [editW2, setEditW2] = useState('')
 
   const loadPairs = useCallback(async (cat) => {
     setLoading(true)
@@ -50,18 +54,33 @@ export default function WordLibraryPage({ toast }) {
     }
   }, [word1, word2, activeCategory, toast, loadPairs, loadStats])
 
-  const handleDelete = useCallback(async (index) => {
+  const openEdit = useCallback((index) => {
     const pair = pairs[index]
-    if (!confirm(`确认删除「${pair.civilian} / ${pair.undercover}」？`)) return
+    setEditIdx(index)
+    setEditW1(pair.civilian)
+    setEditW2(pair.undercover)
+  }, [pairs])
+
+  const handleEdit = useCallback(async () => {
+    if (editIdx === null) return
+    if (!editW1.trim() || !editW2.trim()) { toast('两个词语都不能为空'); return }
+    try {
+      await apiEditWord(activeCategory, editIdx, editW1.trim(), editW2.trim())
+      toast('修改成功')
+      setEditIdx(null)
+      loadPairs(activeCategory)
+    } catch (err) { toast(err.message) }
+  }, [editIdx, editW1, editW2, activeCategory, toast, loadPairs])
+
+  const handleDelete = useCallback(async (index) => {
     try {
       await apiDeleteWord(activeCategory, index)
       toast('已删除')
+      setEditIdx(null)
       loadPairs(activeCategory)
       loadStats()
-    } catch (err) {
-      toast(err.message)
-    }
-  }, [activeCategory, pairs, toast, loadPairs, loadStats])
+    } catch (err) { toast(err.message) }
+  }, [activeCategory, toast, loadPairs, loadStats])
 
   const handleBatchImport = useCallback(async () => {
     if (!batchText.trim()) {
@@ -290,30 +309,25 @@ export default function WordLibraryPage({ toast }) {
                   return (
                     <div
                       key={realIdx}
+                      onClick={() => openEdit(realIdx)}
                       style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        display: 'flex', alignItems: 'center',
                         background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 16px',
+                        cursor: 'pointer', transition: 'background 0.15s',
                       }}
+                      onPointerDown={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                      onPointerUp={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                      onPointerLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, minWidth: 28 }}>
-                          {realIdx + 1}
-                        </span>
-                        <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 15 }}>{pair.civilian}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>/</span>
-                        <span style={{ color: '#f87171', fontWeight: 600, fontSize: 15 }}>{pair.undercover}</span>
-                      </div>
-                      <button
-                        onClick={() => handleDelete(realIdx)}
-                        style={{
-                          background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 8,
-                          padding: '6px 10px', cursor: 'pointer', flexShrink: 0,
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                        </svg>
-                      </button>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, minWidth: 28 }}>
+                        {realIdx + 1}
+                      </span>
+                      <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 15 }}>{pair.civilian}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, margin: '0 6px' }}>/</span>
+                      <span style={{ color: '#f87171', fontWeight: 600, fontSize: 15 }}>{pair.undercover}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
                     </div>
                   )
                 })}
@@ -322,6 +336,65 @@ export default function WordLibraryPage({ toast }) {
           </>
         )}
       </div>
+
+      {/* Edit overlay */}
+      {editIdx !== null && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 999,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditIdx(null) }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 500, background: '#1a3a40', borderRadius: '20px 20px 0 0',
+            padding: '24px 20px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <span style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>编辑词对</span>
+              <button
+                onClick={() => setEditIdx(null)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 24, cursor: 'pointer', padding: '0 4px' }}
+              >&times;</button>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, overflow: 'hidden' }}>
+              <input
+                type="text" value={editW1} onChange={(e) => setEditW1(e.target.value)}
+                placeholder="词语 A"
+                style={{
+                  flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(0,0,0,0.3)', color: '#4ade80', fontSize: 16, fontWeight: 600, outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              <input
+                type="text" value={editW2} onChange={(e) => setEditW2(e.target.value)}
+                placeholder="词语 B"
+                onKeyDown={(e) => e.key === 'Enter' && handleEdit()}
+                style={{
+                  flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(0,0,0,0.3)', color: '#f87171', fontSize: 16, fontWeight: 600, outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { if (confirm('确认删除该词对？')) handleDelete(editIdx) }}
+                style={{
+                  flex: 1, padding: 14, borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)',
+                  background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+                }}
+              >删除</button>
+              <button
+                onClick={handleEdit}
+                style={{
+                  flex: 2, padding: 14, borderRadius: 12, border: 'none',
+                  background: '#22C55E', color: '#052e16', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+                }}
+              >保存修改</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

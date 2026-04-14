@@ -81,6 +81,17 @@ export async function apiAddWord(category, word1, word2) {
   return data
 }
 
+export async function apiEditWord(category, index, word1, word2) {
+  const res = await fetch(`/api/words/${category}/${index}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word1, word2 }),
+  })
+  const data = await res.json()
+  if (!res.ok || !data.ok) throw new Error(data.error || '修改失败')
+  return data
+}
+
 export async function apiDeleteWord(category, index) {
   const res = await fetch(`/api/words/${category}/${index}`, { method: 'DELETE' })
   const data = await res.json()

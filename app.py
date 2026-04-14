@@ -426,6 +426,22 @@ def api_add_word(category: str):
     return jsonify({'ok': True, 'count': len(WORD_CATEGORIES[category])})
 
 
+@app.put('/api/words/<category>/<int:index>')
+def api_edit_word(category: str, index: int):
+    """Edit a word pair by index."""
+    pairs = WORD_CATEGORIES.get(category, [])
+    if index < 0 or index >= len(pairs):
+        return jsonify({'ok': False, 'error': '索引无效'}), 400
+    payload = request.get_json(silent=True) or {}
+    w1 = (payload.get('word1') or '').strip()
+    w2 = (payload.get('word2') or '').strip()
+    if not w1 or not w2:
+        return jsonify({'ok': False, 'error': '两个词语都不能为空'}), 400
+    pairs[index] = {'civilian': w1, 'undercover': w2}
+    _save_words()
+    return jsonify({'ok': True})
+
+
 @app.delete('/api/words/<category>/<int:index>')
 def api_delete_word(category: str, index: int):
     """Delete a word pair by index from a category."""
