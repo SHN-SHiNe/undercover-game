@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>谁是卧底  发牌助手</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <style>
+    .setup-cards { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .card { background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 14px; color: var(--text); }
+    .card-title { font-weight: 800; font-size: 16px; margin-bottom: 2px; }
+    .card-sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+    .card-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stepper { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
+    .stepper .step { background: #1f2937; color: var(--text); border: 1px solid #334155; border-radius: 10px; height: 40px; font-size: 20px; font-weight: 800; }
+    .stepper input[type=number] { height: 40px; text-align: center; background: #0b1220; border: 1px solid #334155; border-radius: 10px; color: var(--text); font-weight: 800; }
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .tab { background: #0b1220; border: 1px solid #334155; border-radius: 10px; padding: 10px; text-align: center; color: var(--text); font-weight: 700; }
+    .tab.active { background: #1d2b4a; border-color: #3b82f6; }
+    .start-cta { width: 100%; max-width: 520px; margin: 12px auto 0; display: block; font-size: 18px; padding: 12px 16px; border-radius: 12px; }
+    .fullwidth-cta { display: block; width: 100%; padding: 22px 20px; font-size: 22px; border-radius: 14px; font-weight: 800; }
+    .fullwidth-cta-sm { display: block; width: 100%; padding: 10px 14px; font-size: 16px; border-radius: 10px; }
+    /* Players editor: one card per row, name+color on same row, rounded color input */
+    .players-editor { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .player-editor .row { display: flex !important; gap: 8px; align-items: center; }
+    .player-editor input[type=color] { width: 46px; height: 36px; border: 1px solid #334155; background: #0b1220; padding: 0; border-radius: 10px; }
+    @media (max-width: 480px) {
+      .card-group { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stepper { grid-template-columns: 36px 1fr 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <h1>谁是卧底  发牌助手</h1>
+    </header>
+
+    <section class="setup" id="setup-section">
+      <h2>游戏设置</h2>
+      <div class="setup-cards">
+        <div class="card">
+          <div class="card-title">玩家人数</div>
+          <div class="card-sub">选择参与的玩家数量</div>
+          <div class="stepper">
+            <button type="button" class="step" id="dec-total">-</button>
+            <input id="total-players" type="number" min="3" max="20" value="5" />
+            <button type="button" class="step" id="inc-total">+</button>
+          </div>
+        </div>
+
+        <div class="card-group">
+          <div class="card">
+            <div class="card-title">卧底人数</div>
+            <div class="card-sub">卧底数量</div>
+            <div class="stepper">
+              <button type="button" class="step" id="dec-undercover">-</button>
+              <input id="undercover-count" type="number" min="1" max="6" value="1" />
+              <button type="button" class="step" id="inc-undercover">+</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">白板人数</div>
+            <div class="card-sub">白板数量</div>
+            <div class="stepper">
+              <button type="button" class="step" id="dec-blank">-</button>
+              <input id="blank-count" type="number" min="0" max="6" value="0" />
+              <button type="button" class="step" id="inc-blank">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">分类</div>
+          <div class="card-sub">可从多个分类中选择</div>
+          <div class="tabs">
+            <div class="tab active">通用</div>
+            <div class="tab">动物</div>
+            <div class="tab">美食饮品</div>
+            <div class="tab">职业</div>
+            <div class="tab">物品</div>
+            <div class="tab">地点</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">玩家名字</div>
+          <div class="card-sub">输入或随机玩家名字与颜色</div>
+          <div id="players-editor" class="players-editor"></div>
+        </div>
+      </div>
+
+      <div class="setup-actions">
+        <button id="btn-generate" class="secondary" style="display:none;">按人数生成卡片</button>
+        <button id="btn-start" class="primary start-cta">开始游戏</button>
+      </div>
+      <input id="use-blank" type="checkbox" hidden />
+      <p class="hint">
+        提示：开始后，长按某位玩家卡片的名字即可查看该玩家的词；点击卡片进行投票，会弹出确认框。
+      </p>
+    </section>
+
+    <section class="game" id="game-section" hidden>
+      <h2>对局</h2>
+      <div id="players-board" class="players-board"></div>
+      <div id="status-bar" class="status-bar"></div>
+      <div class="setup-actions" style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
+        <button id="btn-redeal" class="secondary fullwidth-cta">再来一局</button>
+        <button id="btn-reset-game" class="danger fullwidth-cta-sm">重置游戏</button>
+      </div>
+      <div id="end-panel" class="end-panel" hidden>
+        <div class="end-header">
+          <span id="end-title"></span>
+        </div>
+        <div class="end-words">
+          <div>平民词：<strong id="end-civilian-word"></strong></div>
+          <div>卧底词：<strong id="end-undercover-word"></strong></div>
+        </div>
+        <div class="end-roles">
+          <div>卧底玩家：<span id="end-undercover-names"></span></div>
+          <div>白板玩家：<span id="end-blank-names"></span></div>
+        </div>
+        <div class="setup-actions" style="margin-top:10px;">
+          <a href="/result" class="primary" style="text-decoration:none; padding:10px 14px; border-radius:10px; background:var(--primary); color:#052e16; font-weight:800; text-align:center; display:block;">查看完整结果</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="reveal-overlay" class="reveal-overlay" hidden>
+    <div class="reveal-card">
+      <div class="reveal-title">
+        <span id="reveal-name"></span>
+        <span id="reveal-progress" class="reveal-progress"></span>
+      </div>
+      <div class="reveal-warning">请谨防他人偷看 <span id="reveal-timer" class="reveal-timer"></span></div>
+      <div id="reveal-content" class="reveal-content">点击卡片显示你的词</div>
+      <button id="reveal-remember" class="primary" disabled>记住了，传给下一位</button>
+      <div class="reveal-hint">把手机交给该玩家查看并点击记住了</div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-content">
+      <div id="modal-text"></div>
+      <div class="modal-actions">
+        <button id="modal-close" class="primary">好的</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 投票浮窗：点击某个玩家卡片时弹出 -->
+  <div id="vote-overlay" class="reveal-overlay" hidden>
+    <div class="reveal-card" style="max-width:420px; margin:0 auto;">
+      <div class="reveal-title" style="justify-content:flex-end; align-items:center;">
+        <button id="vote-close" class="primary" style="background:transparent; color:inherit; border:none; font-size:28px; font-weight:800; padding:4px 8px; cursor:pointer;">×</button>
+      </div>
+      <div class="reveal-content" style="min-height:auto; padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <div class="vote-name">
+          <span id="vote-player-name"></span>
+          <div id="vote-word" class="vote-word"></div>
+          <div id="vote-word-timer" class="vote-word-timer"></div>
+        </div>
+        <button id="vote-eliminate" class="danger" style="padding:20px 18px; font-size:24px; font-weight:900; border-radius:14px; cursor:pointer;">投票出局</button>
+        <button id="vote-view-word" class="secondary" style="padding:10px 14px; font-size:14px; border-radius:10px; cursor:pointer;">忘词查看</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

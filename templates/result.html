@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>对局结果 - 谁是卧底</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <style>
+    .result-wrap { max-width: 480px; margin: 0 auto; padding: 16px; }
+    .result-header { text-align: center; margin-bottom: 12px; }
+    .result-header h1 { margin: 8px 0 4px; font-size: 22px; }
+    .result-sub { color: var(--muted); font-size: 13px; }
+    .result-words { background: var(--panel); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin: 12px 0; }
+    .result-words div { margin: 6px 0; }
+    .result-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .result-card { border-radius: 14px; padding: 12px; color: #fff; position: relative; overflow: hidden; }
+    .result-card header { position: relative; display: flex; align-items: center; justify-content: space-between; font-weight: 800; margin-bottom: 8px; }
+    /* Role banner overlay, mimicking in-game .dead style */
+    .role-banner { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 22px; letter-spacing: 4px; text-shadow: 0 2px 6px rgba(0,0,0,.4); }
+    .result-word { font-size: 16px; }
+    .result-actions { margin-top: 14px; display: flex; gap: 10px; }
+  </style>
+</head>
+<body>
+  <div class="result-wrap">
+    <div class="result-header">
+      <h1 id="res-title">对局结果</h1>
+      <div class="result-sub">胜利阵营与全部玩家信息</div>
+    </div>
+
+    <div class="result-words">
+      <div>平民词：<strong id="res-civilian-word"></strong></div>
+      <div>卧底词：<strong id="res-undercover-word"></strong></div>
+    </div>
+
+    <div id="res-grid" class="result-grid"></div>
+
+    <div class="result-actions" style="display:flex; flex-direction:column; gap:10px;">
+      <button id="res-redeal" class="primary" style="padding:20px 18px; border-radius:14px; background:var(--primary); color:#052e16; font-weight:900; text-align:center; border:0; cursor:pointer; width:100%; font-size:22px; letter-spacing:1px;">再来一局</button>
+      <a href="/" class="secondary" style="text-decoration:none; padding:10px 14px; border-radius:10px; background:#1f2937; color:var(--text); font-weight:600; text-align:center; width:100%;">返回主页</a>
+    </div>
+  </div>
+
+  <script>
+    function pickTextColor(bg) {
+      try {
+        let hex = (bg || '').trim();
+        if (hex.startsWith('rgb')) {
+          const nums = hex.match(/\d+/g).map(Number);
+          const [r, g, b] = nums;
+          const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+          return yiq >= 140 ? '#111111' : '#ffffff';
+        }
+        if (hex.startsWith('#')) {
+          if (hex.length === 4) {
+            hex = '#' + [...hex.slice(1)].map(ch => ch + ch).join('');
+          }
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+          return yiq >= 140 ? '#111111' : '#ffffff';
+        }
+      } catch (e) {}
+      return '#ffffff';
+    }
+
+    function hexToRgb(hex) {
+      if (!hex) return { r: 0, g: 0, b: 0 };
+      let h = hex.trim();
+      if (h.startsWith('#')) h = h.slice(1);
+      if (h.length === 3) h = h.split('').map(c => c + c).join('');
+      const r = parseInt(h.slice(0, 2), 16) || 0;
+      const g = parseInt(h.slice(2, 4), 16) || 0;
+      const b = parseInt(h.slice(4, 6), 16) || 0;
+      return { r, g, b };
+    }
+
+    function rgbToHex(r, g, b) {
+      const to = (x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0');
+      return `#${to(r)}${to(g)}${to(b)}`;
+    }
+
+    function pastelizeColor(hex, weight = 0.35) {
+      try {
+        const { r, g, b } = hexToRgb(hex || '#888888');
+        const wr = 255, wg = 255, wb = 255;
+        const nr = r * (1 - weight) + wr * weight;
+        const ng = g * (1 - weight) + wg * weight;
+        const nb = b * (1 - weight) + wb * weight;
+        return rgbToHex(nr, ng, nb);
+      } catch (e) {
+        return '#dddddd';
+      }
+    }
+
+    async function loadResult() {
+      try {
+        const res = await fetch('/api/state');
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error('无法获取结果');
+        const s = data.state.status;
+        if (!s.ended) {
+          document.getElementById('res-title').textContent = '本局尚未结束';
+          return;
+        }
+        const winnerMap = { civilians: '平民阵营胜利', undercover: '卧底阵营胜利', blank: '白板胜利' };
+        document.getElementById('res-title').textContent = winnerMap[s.winner] || '对局结果';
+        document.getElementById('res-civilian-word').textContent = s.reveal?.words?.civilian || '';
+        document.getElementById('res-undercover-word').textContent = s.reveal?.words?.undercover || '';
+
+        const undercoverSet = new Set(s.reveal?.undercover_ids || []);
+        const blankSet = new Set(s.reveal?.blank_ids || []);
+
+        const grid = document.getElementById('res-grid');
+        grid.innerHTML = '';
+        const players = data.state.players || [];
+        players.forEach((p) => {
+          const role = undercoverSet.has(p.id) ? 'undercover' : (blankSet.has(p.id) ? 'blank' : 'civilian');
+          const word = role === 'undercover' ? (s.reveal?.words?.undercover || '') : (role === 'civilian' ? (s.reveal?.words?.civilian || '') : '（无）');
+          const roleText = role==='undercover' ? '卧底' : (role==='blank' ? '白板' : '平民');
+          const card = document.createElement('div');
+          card.className = 'result-card';
+          card.dataset.color = p.color || '#222222';
+          card.innerHTML = `
+            <header>
+              <span class="name">${p.name}</span>
+            </header>
+            <div class="result-word">${word}</div>
+            <div class="role-banner">${roleText}</div>
+          `;
+          grid.appendChild(card);
+        });
+
+        document.querySelectorAll('.result-card').forEach((el) => {
+          const raw = el.dataset.color || '#222222';
+          const pastel = pastelizeColor(raw, 0.35);
+          const tc = pickTextColor(pastel);
+          el.style.background = pastel;
+          el.style.color = tc;
+        });
+      } catch (err) {
+        document.getElementById('res-title').textContent = '结果加载失败';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadResult);
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('res-redeal');
+      if (btn) {
+        btn.addEventListener('click', async () => {
+          try {
+            const res = await fetch('/api/redeal', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || '再来一局失败');
+            window.location.href = '/?reveal=1';
+          } catch (err) {
+            alert(err.message || '再来一局失败');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

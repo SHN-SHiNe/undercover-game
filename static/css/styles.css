@@ -1,0 +1,190 @@
+* { box-sizing: border-box; }
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --primary: #22c55e;
+  --danger: #ef4444;
+  --secondary: #38bdf8;
+}
+html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, "PingFang SC", "Microsoft YaHei", sans-serif; }
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.app-header h1 { margin: 8px 0; font-size: 22px; }
+.actions button { margin-left: 8px; }
+
+section { background: var(--panel); padding: 16px; border-radius: 12px; margin-top: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+section h2 { margin-top: 0; }
+
+.grid-setup { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.grid-setup label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.grid-setup input[type="number"] { padding: 8px 10px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; color: var(--text); }
+.toggle { display: flex; align-items: center; gap: 8px; flex-direction: row !important; }
+
+.players-editor { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.player-editor { border: 1px solid #334155; border-radius: 10px; padding: 10px; background: #0b1220; }
+.player-editor header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 600; color: var(--muted); }
+.player-editor header span { color: #000000; }
+.player-editor .row { display: flex; gap: 8px; margin-top: 6px; }
+.player-editor input[type="text"] { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; color: var(--text); }
+.player-editor input[type="color"] {
+  width: 46px;
+  height: 36px;
+  border: 1px solid #334155;
+  padding: 0;
+  border-radius: 10px;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.player-editor input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 10px;
+}
+.player-editor input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 10px;
+}
+
+.setup-actions { display: flex; gap: 12px; margin-top: 12px; }
+
+.players-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.player-card { border: 1px solid #334155; border-radius: 18px; overflow: hidden; background: #0b1220; position: relative; min-height: 80px; display: flex; align-items: center; margin-bottom: 12px; }
+.player-card header { padding: 18px 16px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+.player-card .body { padding: 10px 12px; font-size: 14px; color: var(--muted); }
+.player-card .dead { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 22px; letter-spacing: 4px; }
+.player-card.eliminated { filter: grayscale(100%); opacity: .75; }
+
+.status-bar { margin-top: 12px; font-size: 14px; color: var(--muted); }
+
+button { cursor: pointer; border: none; border-radius: 10px; padding: 10px 14px; background: #1f2937; color: var(--text); font-weight: 600; }
+button.primary { background: var(--primary); color: #052e16; }
+button.secondary { background: var(--secondary); color: #082f49; }
+button.danger { background: var(--danger); color: #3f0a0a; }
+button:disabled { opacity: .6; cursor: not-allowed; }
+
+.hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal-content { background: #0b1220; border: 1px solid #334155; border-radius: 12px; padding: 16px; max-width: 420px; width: 100%; }
+.modal-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+/* --- Mobile-only overrides (appended) --- */
+.container { max-width: 420px; width: 100%; margin: 0 auto; padding: 16px; }
+.app-header { flex-direction: column; align-items: stretch; gap: 8px; }
+.app-header h1 { font-size: 18px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.actions button { margin-left: 0; width: 100%; }
+.grid-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.players-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.players-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.player-card header { padding: 12px; }
+.player-card .body { padding: 12px; }
+button { padding: 12px 14px; }
+/* --- Fix: prevent name/color inputs from overflowing on narrow screens --- */
+html, body { overflow-x: hidden; }
+.player-editor .row { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.player-editor input[type="text"],
+.player-editor input[type="color"] { width: 100%; }
+.player-editor input[type="color"] { height: 42px; }
+/* --- Player card single-column + pure color background --- */
+.players-board { grid-template-columns: 1fr !important; }
+.player-card { border: none !important; border-radius: 14px !important; }
+.player-card header { background: transparent !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; }
+.player-card .body { color: inherit !important; }
+/* --- First speaker badge style --- */
+.badge-first { display: inline-block; margin-left: 8px; padding: 2px 6px; font-size: 12px; line-height: 1; border-radius: 999px; background: rgba(255,255,255,0.2); border: 1px solid rgba(0,0,0,0.2); color: inherit; }
+.player-card .name {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+/* --- Pass-the-phone reveal overlay styles --- */
+.reveal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
+.reveal-overlay[hidden] { display: none; }
+.reveal-card { width: 100%; max-width: 420px; background: #0b1220; border: 1px solid #334155; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.reveal-title { display: flex; align-items: center; justify-content: space-between; font-weight: 800; }
+.reveal-content { border: 1px dashed #334155; border-radius: 12px; padding: 30px 16px; color: #cbd5e1; font-size: 18px; }
+.reveal-hint { font-size: 12px; color: var(--muted); }
+.reveal-progress { font-size: 12px; color: var(--muted); }
+/* --- Reveal fullscreen overrides --- */
+.reveal-card { width: 100vw; height: 100vh; max-width: none; max-height: none; border: none; border-radius: 0; padding: 24px; display: flex; flex-direction: column; background: #0b1220; }
+.reveal-title { display: flex; align-items: center; justify-content: space-between; font-weight: 800; padding-bottom: 8px; }
+.reveal-content { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 36px; border: none; border-radius: 12px; }
+#reveal-remember { margin-top: 12px; }
+/* --- Reveal floating card (non-fullscreen) adjustments --- */
+.reveal-overlay { background: rgba(0,0,0,0.75) !important; }
+.reveal-card { width: min(92vw, 520px) !important; height: auto !important; max-height: 85vh !important; border: none !important; border-radius: 16px !important; padding: 16px !important; margin: 0 auto !important; display: flex !important; flex-direction: column !important; gap: 12px !important; }
+.reveal-title { padding-bottom: 6px !important; }
+#reveal-name { font-size: 24px !important; font-weight: 900 !important; letter-spacing: .3px !important; text-shadow: 0 1px 2px rgba(0,0,0,.35) !important; }
+.reveal-content { flex: 1 0 auto !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 30px !important; border: none !important; border-radius: 12px !important; min-height: 40vh !important; flex-direction: column !important; gap: 6px !important; }
+/* --- Center and enlarge reveal name --- */
+.reveal-title { position: relative !important; justify-content: center !important; }
+#reveal-name { font-size: 28px !important; font-weight: 1000 !important; text-align: center !important; }
+#reveal-progress { position: absolute !important; right: 0 !important; top: 0 !important; transform: translateY(20%); }
+/* --- Ensure reveal-content inherits contrast color from card --- */
+.reveal-content { color: inherit !important; }
+/* --- Vote overlay: 专门给投票浮窗的样式，保证一定能盖住页面并居中 --- */
+#vote-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  display: none; /* JS 会改为 flex */
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  z-index: 2000 !important;
+}
+
+#vote-overlay .reveal-card {
+  width: min(92vw, 520px) !important;
+  max-height: 80vh !important;
+}
+
+#vote-overlay .vote-name {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+#vote-overlay #vote-player-name {
+  display: block;
+  font-size: 34px;
+  font-weight: 1000;
+  letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  margin-bottom: 8px;
+}
+
+#vote-overlay #vote-word {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+#vote-overlay #vote-word-timer {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 忘词查看按钮：放在投票按钮正下方并居中 */
+#vote-overlay #vote-eliminate,
+#vote-overlay #vote-view-word {
+  align-self: center;
+  min-width: 60%;
+}
+
+#vote-overlay #vote-view-word {
+  font-size: 14px;
+  padding: 8px 14px;
+  background: transparent !important;
+  color: inherit !important;
+  border: 1px solid currentColor !important;
+}
+/* --- Player editor: compact action buttons in a single row --- */
+.player-editor .actions-row { display: flex !important; flex-wrap: nowrap; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+.player-editor .actions-row .btn-sm { padding: 6px 8px; font-size: 12px; border-radius: 8px; line-height: 1; }
